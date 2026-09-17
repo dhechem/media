@@ -1,0 +1,19 @@
+{
+  "name": "D-Chem - Bahan Ajar Kimia SMA - Dhevira Aptia FIrmanda, S.Pd.",
+  "short_name": "D-Chem",
+  "description": "D-Chem - Media Pembelajaran Kimia Interaktif & Modul Kurikulum Merdeka (Fase E & F) oleh Dhevira Aptia FIrmanda, S.Pd.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d0b14",
+  "theme_color": "#f43f9e",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

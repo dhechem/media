@@ -1,0 +1,57 @@
+﻿<svg xmlns=http://www.w3.org/2000/svg viewBox=0 0 512 512 width=512 height=512>
+  <defs>
+    <linearGradient id=candyBgGrad x1=0% y1=0% x2=100% y2=100%>
+      <stop offset=0% stop-color=#14121b/>
+      <stop offset=40% stop-color=#1e192e/>
+      <stop offset=100% stop-color=#0d0b14/>
+    </linearGradient>
+    <linearGradient id=dchemPillGrad x1=0% y1=0% x2=100% y2=100%>
+      <stop offset=0% stop-color=#f43f9e/>
+      <stop offset=50% stop-color=#ec4899/>
+      <stop offset=100% stop-color=#8b5cf6/>
+    </linearGradient>
+    <linearGradient id=cyanAccent x1=0% y1=0% x2=100% y2=100%>
+      <stop offset=0% stop-color=#06b6d4/>
+      <stop offset=100% stop-color=#38bdf8/>
+    </linearGradient>
+    <filter id=neonGlow x=-30% y=-30% width=160% height=160%>
+      <feDropShadow dx=0 dy=8 stdDeviation=16 flood-color=#f43f9e flood-opacity=0.45/>
+    </filter>
+    <filter id=cyanGlow x=-30% y=-30% width=160% height=160%>
+      <feDropShadow dx=0 dy=0 stdDeviation=10 flood-color=#06b6d4 flood-opacity=0.6/>
+    </filter>
+  </defs>
+
+  <!-- Background Base with Rounded Squircle -->
+  <rect width=512 height=512 rx=120 fill=url(#candyBgGrad)/>
+  <rect width=504 height=504 x=4 y=4 rx=116 fill=none stroke=rgba(168, 85, 247, 0.2) stroke-width=3/>
+
+  <!-- Centered Glowing Candy Emblem -->
+  <g transform=translate(86, 76)>
+    <!-- Pill Backdrop -->
+    <rect width=340 height=340 rx=90 fill=url(#dchemPillGrad) filter=url(#neonGlow)/>
+
+    <!-- Orbital Rings -->
+    <ellipse cx=170 cy=175 rx=115 ry=42 fill=none stroke=#ffffff stroke-width=8 stroke-dasharray=8 10 opacity=0.9 transform=rotate(-30 170 175)/>
+    <ellipse cx=170 cy=175 rx=115 ry=42 fill=none stroke=#ffffff stroke-width=4 stroke-dasharray=6 8 opacity=0.4 transform=rotate(35 170 175)/>
+
+    <!-- Stylized Chemistry Erlenmeyer Flask -->
+    <path d=M170 85 L170 120 L115 210 C108 221 115 235 128 235 L212 235 C225 235 232 221 225 210 L170 120 Z 
+          stroke=#ffffff stroke-width=15 stroke-linecap=round stroke-linejoin=round fill=none/>
+    <line x1=150 y1=85 x2=190 y2=85 stroke=#ffffff stroke-width=15 stroke-linecap=round/>
+
+    <!-- Liquid inside Flask with Wavy Surface -->
+    <path d=M133 207 C148 194 158 214 178 201 C194 191 201 201 210 207 L212 223 C212 228 208 233 203 233 L140 233 C135 233 131 228 131 223 Z 
+          fill=#ffffff fill-opacity=0.92/>
+
+    <!-- Orbiting Candy Atoms -->
+    <circle cx=260 cy=125 r=18 fill=#fbbf24 filter=url(#cyanGlow)/>
+    <circle cx=80 cy=225 r=14 fill=#06b6d4 filter=url(#cyanGlow)/>
+    <circle cx=170 cy=170 r=10 fill=#ffffff/>
+  </g>
+
+  <!-- D-Chem Text Branding -->
+  <text x=256 y=465 font-family='DM Sans', 'Inter', system-ui, sans-serif font-weight=900 font-size=34 letter-spacing=4px text-anchor=middle>
+    <tspan fill=#f43f9e>D-</tspan><tspan fill=#ffffff>CHEM</tspan>
+  </text>
+</svg>
