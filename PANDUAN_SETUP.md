@@ -1,4 +1,4 @@
-﻿# Panduan Lengkap: D-Chem Portal Bahan Ajar Kimia SMA
+# Panduan Lengkap: D-Chem Portal Bahan Ajar Kimia SMA
 **Pengembang/Pengampu:** Dhevira Aptia FIrmanda, S.Pd.  
 **Kata Sandi Area Guru:** guru08123  
 **Lokasi Berkas Lokal:** C:\Users\Tito\Desktop\D-Chem-Bahan Ajar\
@@ -78,11 +78,14 @@ Jika Ibu Dhevira ingin menghubungkan portal ke Google Spreadsheet sendiri untuk 
 4. Klik **Simpan Bahan Ajar**. Materi akan langsung tampil di halaman depan.
 
 ### Opsi 2: Sinkronisasi Folder Google Drive Otomatis (Sangat Praktis)
-1. Kumpulkan berkas LKPD PDF, slide materi PPT, atau materi Anda dalam satu Folder di Google Drive.
+Folder Google Drive resmi D-Chem karya Ibu Dhevira telah terpasang secara bawaan:
+`https://drive.google.com/drive/folders/1i6pzb4q-QwC2bvWwyGferqg0_tkg9ZXp?usp=sharing`
+
+1. Kumpulkan berkas LKPD PDF, slide materi PPT, atau materi Anda dalam Folder di Google Drive.
 2. Atur izin akses folder Drive tersebut menjadi **Siapa saja yang memiliki link dapat melihat** (*Anyone with the link can view*).
-3. Buka **Panel Guru** > tempelkan link folder Google Drive pada kolom **Auto-Sync Folder Google Drive**.
-4. Klik tombol **Pindai & Sinkronkan**.
-5. Sistem backend akan mendeteksi seluruh berkas di dalam folder secara otomatis dan memuatnya ke katalog D-Chem.
+3. Buka **Panel Guru** > link folder Google Drive resmi D-Chem sudah otomatis terisi di kolom **Auto-Sync Folder Google Drive**.
+4. Klik tombol **Mulai Pemindaian Folder**.
+5. Sistem akan mendeteksi seluruh berkas (42 media interaktif D-Chem) dan menyinkronkannya ke katalog D-Chem tanpa bercampur dengan materi portal lain.
 
 ---
 

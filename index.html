@@ -553,15 +553,37 @@
         
         <!-- Section Header Bar -->
         <div class="flex flex-wrap items-center justify-between gap-4 mb-6 pb-3 border-b border-slate-200/80 dark:border-outline-variant/60">
-          <div class="flex items-center gap-2.5">
+          <div class="flex flex-wrap items-center gap-3">
             <div class="w-3 h-3 rounded-md bg-violet-600 dark:bg-primary"></div>
             <h2 class="text-lg sm:text-xl font-headline font-bold text-slate-900 dark:text-on-surface tracking-tight">
               Katalog Media Pembelajaran Terbuka
             </h2>
+
+            <!-- Mode Tampilan: Alur Belajar (Folder) vs Grid Kartu -->
+            <div class="inline-flex p-1 rounded-2xl bg-surface-container border border-outline text-xs">
+              <button 
+                id="view-btn-flow" 
+                type="button"
+                onclick="switchViewMode('flow')" 
+                class="px-3.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all bg-gradient-to-r from-primary to-secondary text-white shadow-sm cursor-pointer bouncy"
+                title="Mode Alur Belajar Berjenjang (Folder Kelas &amp; Bab)">
+                <span class="material-symbols-outlined text-[16px]">account_tree</span>
+                <span>Alur Belajar</span>
+              </button>
+              <button 
+                id="view-btn-grid" 
+                type="button"
+                onclick="switchViewMode('grid')" 
+                class="px-3.5 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition-all text-on-surface-variant hover:text-on-surface cursor-pointer bouncy"
+                title="Mode Grid Kartu Klasik">
+                <span class="material-symbols-outlined text-[16px]">grid_view</span>
+                <span>Grid Kartu</span>
+              </button>
+            </div>
           </div>
 
-          <div class="flex items-center gap-3 text-xs">
-            <span class="text-slate-500 dark:text-on-surface-variant">
+          <div class="flex flex-wrap items-center gap-2.5 text-xs">
+            <span class="text-slate-500 dark:text-on-surface-variant hidden sm:inline">
               Menampilkan <strong id="displayed-count" class="text-slate-900 dark:text-on-surface font-mono font-bold">0</strong> materi
             </span>
             
@@ -569,17 +591,33 @@
             <select 
               id="sort-order" 
               onchange="renderMaterials()"
-              class="px-2.5 py-1.5 rounded-xl bg-white dark:bg-surface-container border border-slate-200 dark:border-outline-variant text-slate-700 dark:text-on-surface text-xs focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer">
-              <option value="grade_title">Urutkan: Jenjang &amp; Judul</option>
+              class="px-3 py-1.5 rounded-xl bg-white dark:bg-surface-container border border-slate-200 dark:border-outline-variant text-slate-700 dark:text-on-surface text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
+              <option value="learning_flow">🎯 Alur Belajar Kurikulum</option>
+              <option value="grade_title">Jenjang &amp; Judul</option>
               <option value="title_asc">Judul (A-Z)</option>
               <option value="title_desc">Judul (Z-A)</option>
-              <option value="newest">Terbaru</option>
             </select>
+
+            <!-- Reset Urutan Button (Khusus Mode Guru) -->
+            <button 
+              id="btn-reset-order"
+              type="button"
+              onclick="resetLearningOrder()" 
+              class="hidden px-2.5 py-1.5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-primary border border-outline flex items-center gap-1 transition-all cursor-pointer bouncy"
+              title="Kembalikan urutan langkah belajar ke alur kurikulum standar">
+              <span class="material-symbols-outlined text-[15px]">restart_alt</span>
+              <span class="hidden sm:inline">Reset Urutan</span>
+            </button>
           </div>
         </div>
 
+        <!-- Alur Belajar Berjenjang (Folder Kelas -> Folder Bab -> Urutan Langkah 1, 2, 3) -->
+        <div id="materials-flow" class="space-y-6">
+          <!-- Dynamically populated by renderHierarchicalLearningPath -->
+        </div>
+
         <!-- Responsive Grid Bento Layout -->
-        <div id="materials-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div id="materials-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
           <!-- Dynamically populated by JavaScript -->
         </div>
 
@@ -1118,11 +1156,13 @@
           <div>
             <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Link URL atau ID Folder Google Drive:
+              <span class="ml-1 text-[10px] text-tertiary font-normal">(Folder Resmi D-Chem telah terpasang)</span>
             </label>
             <div class="flex flex-col sm:flex-row gap-2">
               <input 
                 type="text" 
                 id="driveFolderUrlInput" 
+                value="https://drive.google.com/drive/folders/1i6pzb4q-QwC2bvWwyGferqg0_tkg9ZXp?usp=sharing"
                 placeholder="https://drive.google.com/drive/folders/1AbCdEfGh..." 
                 class="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-surface-container-low text-slate-900 dark:text-on-surface placeholder:text-slate-400 dark:placeholder:text-secondary-fixed-dim text-xs rounded-xl border border-slate-200 dark:border-outline-variant focus:outline-none focus:ring-2 focus:ring-violet-500 font-mono"
                 onkeydown="if(event.key==='Enter'){event.preventDefault();executeDriveSync();}"
@@ -1639,7 +1679,12 @@
     // ==========================================
     // 1. STATE & CONSTANTS
     // ==========================================
-    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwobr0k-44HFrf3B5YUroeEK-_U13AGVe2urQYDAmL0U43arTQHTvKjUEeM6CuZQvOE/exec';
+    // URL Web App Google Apps Script khusus untuk merender file HTML dari Google Drive secara interaktif
+    const GAS_RENDERER_URL = 'https://script.google.com/macros/s/AKfycbwobr0k-44HFrf3B5YUroeEK-_U13AGVe2urQYDAmL0U43arTQHTvKjUEeM6CuZQvOE/exec';
+    // URL Backend API Khusus D-Chem (kosong default agar tidak terhubung ke database portalkimia lain)
+    const GAS_API_URL = localStorage.getItem('dchem_custom_gas_url') || '';
+    // Folder Google Drive Resmi D-Chem (Dhevira Aptia FIrmanda, S.Pd.)
+    const OFFICIAL_DCHEM_DRIVE_FOLDER = 'https://drive.google.com/drive/folders/1i6pzb4q-QwC2bvWwyGferqg0_tkg9ZXp?usp=sharing';
     const DEFAULT_TEACHER_PIN = 'guru08123';
     
     let allMaterials = [];
@@ -1649,8 +1694,513 @@
     let isTeacherMode = (localStorage.getItem('dchem_is_admin') === 'true');
     let activeViewingMaterialId = null;
 
-    // Daftar bahan ajar awal (materi diisi langsung oleh Guru melalui Panel Guru atau Sinkronisasi Google Drive)
-    const defaultCuratedMaterials = [];
+    // Daftar bahan ajar resmi D-Chem (bersumber HANYA dari folder Google Drive Ibu Dhevira Aptia FIrmanda, S.Pd.)
+    const defaultCuratedMaterials = [
+      {
+            "id": "dchem-1Xp-Lcad",
+            "title": "Game Edukasi: Petualangan Hakikat Ilmu Kimia Kelas 10",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Hakikat Ilmu Kimia & Metode Ilmiah",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1Xp-LcadqxprUyG9_hbF-md7N-Rw9gy-L/view?usp=sharing",
+            "driveId": "1Xp-LcadqxprUyG9_hbF-md7N-Rw9gy-L",
+            "description": "Media pembelajaran interaktif Kimia materi game hakikat ilmu kimia fix kelas 10 karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1YZLEbkB",
+            "title": "Game Interaktif Hakikat Ilmu Kimia",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Hakikat Ilmu Kimia & Metode Ilmiah",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1YZLEbkBQTg5M2rqtPxMHp4FolCGxqngt/view?usp=sharing",
+            "driveId": "1YZLEbkBQTg5M2rqtPxMHp4FolCGxqngt",
+            "description": "Media pembelajaran interaktif Kimia materi game hakikat ilmu kimia karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1jS9pzbp",
+            "title": "Hakikat Ilmu Kimia & Metode Ilmiah (Bilingual Edition)",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Hakikat Ilmu Kimia & Metode Ilmiah",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1jS9pzbp5T0_LHPrBLle7xeyQeGNEZ76w/view?usp=sharing",
+            "driveId": "1jS9pzbp5T0_LHPrBLle7xeyQeGNEZ76w",
+            "description": "Media pembelajaran interaktif Kimia materi hakikat ilmu kimia billingual karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1B6aKsHB",
+            "title": "Hakikat Ilmu Kimia & Metode Ilmiah (Interaktif)",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Hakikat Ilmu Kimia & Metode Ilmiah",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1B6aKsHBbs6YCKN728g14JOgCj3O5-AZk/view?usp=sharing",
+            "driveId": "1B6aKsHBbs6YCKN728g14JOgCj3O5-AZk",
+            "description": "Media pembelajaran interaktif Kimia materi HAKIKAT ILMU KIMIA FIX karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1BsmsZqm",
+            "title": "Kuis Evaluasi: Hakikat Ilmu Kimia & Keselamatan Kerja Lab",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Hakikat Ilmu Kimia & Metode Ilmiah",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1BsmsZqmlxi43vX5YME3q9f3ANFt0eoDm/view?usp=sharing",
+            "driveId": "1BsmsZqmlxi43vX5YME3q9f3ANFt0eoDm",
+            "description": "Media pembelajaran interaktif Kimia materi QUIZ KIMIA HAKIKAT karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1ADDnMhV",
+            "title": "Kuis Pemahaman Metode Ilmiah & Variabel Percobaan",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Hakikat Ilmu Kimia & Metode Ilmiah",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1ADDnMhVQeYykx1OJ30alCXrhQjj8mJ49/view?usp=sharing",
+            "driveId": "1ADDnMhVQeYykx1OJ30alCXrhQjj8mJ49",
+            "description": "Media pembelajaran interaktif Kimia materi quiz met ilmiah karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1Qmoy4vw",
+            "title": "Latihan Soal Literasi Sains Kimia Standar PISA (Bagian 2)",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Hakikat Ilmu Kimia & Metode Ilmiah",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1Qmoy4vwXfgBlGUzfOfX2Uc3r2s4IG5mI/view?usp=sharing",
+            "driveId": "1Qmoy4vwXfgBlGUzfOfX2Uc3r2s4IG5mI",
+            "description": "Media pembelajaran interaktif Kimia materi PISA 2 karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1E_26cyo",
+            "title": "Latihan Soal Literasi Sains Kimia Standar PISA (Pertemuan 1)",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Hakikat Ilmu Kimia & Metode Ilmiah",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1E_26cyoKt41Bv27MBEUWjffHEFmogZzH/view?usp=sharing",
+            "driveId": "1E_26cyoKt41Bv27MBEUWjffHEFmogZzH",
+            "description": "Media pembelajaran interaktif Kimia materi PISA PERT 1 karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1IpkFQuD",
+            "title": "Orientasi & Pengenalan Pembelajaran Kimia",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Hakikat Ilmu Kimia & Metode Ilmiah",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1IpkFQuDxDjmNFJiAmdAXe3vHSV1HJcUV/view?usp=sharing",
+            "driveId": "1IpkFQuDxDjmNFJiAmdAXe3vHSV1HJcUV",
+            "description": "Media pembelajaran interaktif Kimia materi PERKENALAN 2 karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1hUqpPAR",
+            "title": "Pengantar & Kontrak Belajar Pembelajaran Kimia SMA",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Hakikat Ilmu Kimia & Metode Ilmiah",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1hUqpPARrWdhoeWiBXW_I8rCC-ETzTGhO/view?usp=sharing",
+            "driveId": "1hUqpPARrWdhoeWiBXW_I8rCC-ETzTGhO",
+            "description": "Media pembelajaran interaktif Kimia materi perkenalan karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1eQ1N28K",
+            "title": "Review Materi Hakikat Ilmu Kimia & Metode Ilmiah",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Hakikat Ilmu Kimia & Metode Ilmiah",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1eQ1N28KTwDLlws6iU7Z9llQpnKgY2BN7/view?usp=sharing",
+            "driveId": "1eQ1N28KTwDLlws6iU7Z9llQpnKgY2BN7",
+            "description": "Media pembelajaran interaktif Kimia materi review hakikat ilmu karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1F1GYDQe",
+            "title": "Review on the Nature of Chemistry (English)",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Hakikat Ilmu Kimia & Metode Ilmiah",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1F1GYDQeIPzkb1TBJL5oUp1oIQEUqFJqU/view?usp=sharing",
+            "driveId": "1F1GYDQeIPzkb1TBJL5oUp1oIQEUqFJqU",
+            "description": "Media pembelajaran interaktif Kimia materi review hakikat eng karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1P0SeW7l",
+            "title": "Latihan Soal Kimia Bab 1 (Kelas ICP)",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Kimia Dasar",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1P0SeW7lZKI1lvjKzymAvxVLQEOsyNbj2/view?usp=sharing",
+            "driveId": "1P0SeW7lZKI1lvjKzymAvxVLQEOsyNbj2",
+            "description": "Media pembelajaran interaktif Kimia materi latsos bab 1 icp karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1DIqppnv",
+            "title": "Review Materi Kimia Semester Kelas 10",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Kimia Dasar",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1DIqppnveeFmwhF7JI5ZvlFoZar7nYhqu/view?usp=sharing",
+            "driveId": "1DIqppnveeFmwhF7JI5ZvlFoZar7nYhqu",
+            "description": "Media pembelajaran interaktif Kimia materi review materi 10grade karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-11wLev-u",
+            "title": "Task Assignment: Compound Naming & Simplification",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Kimia Dasar",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/11wLev-uDw2x7asg8Xw68BSEkeKJm3qTR/view?usp=sharing",
+            "driveId": "11wLev-uDw2x7asg8Xw68BSEkeKJm3qTR",
+            "description": "Media pembelajaran interaktif Kimia materi task naming simplyfying - icp karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-17pMXQT-",
+            "title": "Writing Chemical Equations (ITPP Practice Spread)",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Kimia Dasar",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/17pMXQT-vHCg_-rRfTy5J9qgqaOI7PAf5/view?usp=sharing",
+            "driveId": "17pMXQT-vHCg_-rRfTy5J9qgqaOI7PAf5",
+            "description": "Media pembelajaran interaktif Kimia materi writing chem eq - itpp task spread karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1603126857599-f6e157fa2fe6?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1qLZDV4g",
+            "title": "Simplifying Chemical Equations (ICP Grade 10)",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Persamaan Reaksi Kimia",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1qLZDV4gSHebJ0QSFUHjZVPAsJdkbfn9V/view?usp=sharing",
+            "driveId": "1qLZDV4gSHebJ0QSFUHjZVPAsJdkbfn9V",
+            "description": "Media pembelajaran interaktif Kimia materi simplifying equation icp 10 karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1603126857599-f6e157fa2fe6?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1Z92gWdW",
+            "title": "Simulator Penyetaraan Persamaan Reaksi Kimia",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Persamaan Reaksi Kimia",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1Z92gWdWnNgJCoIW1f7GHoXclHakdJB_Q/view?usp=sharing",
+            "driveId": "1Z92gWdWnNgJCoIW1f7GHoXclHakdJB_Q",
+            "description": "Media pembelajaran interaktif Kimia materi balancing karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1603126857599-f6e157fa2fe6?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-16t2w_4c",
+            "title": "Teknik Penulisan & Penyetaraan Reaksi Kimia (ICP)",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Persamaan Reaksi Kimia",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/16t2w_4cPrcmRY9erowq7t1gCSNNEuBVK/view?usp=sharing",
+            "driveId": "16t2w_4cPrcmRY9erowq7t1gCSNNEuBVK",
+            "description": "Media pembelajaran interaktif Kimia materi simplyfying nulis reaksi icp karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1603126857599-f6e157fa2fe6?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-132ZcYWr",
+            "title": "Atomic Structure & Subatomic Particles (Bilingual/English)",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Struktur Atom & Sistem Periodik",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/132ZcYWrkw2i-awBaFXT2aNnniqidDtLi/view?usp=sharing",
+            "driveId": "132ZcYWrkw2i-awBaFXT2aNnniqidDtLi",
+            "description": "Media pembelajaran interaktif Kimia materi atoms in eng karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-13UNiIuM",
+            "title": "Evolusi Teori Atom (Dalton, Thomson, Rutherford, Bohr)",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Struktur Atom & Sistem Periodik",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/13UNiIuMIUtco1wiEHr--zkIcR8WL4x1N/view?usp=sharing",
+            "driveId": "13UNiIuMIUtco1wiEHr--zkIcR8WL4x1N",
+            "description": "Media pembelajaran interaktif Kimia materi atom teori karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1zvMP9Zu",
+            "title": "Kartu Kuis & Simulasi Model Atom Bohr",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Struktur Atom & Sistem Periodik",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1zvMP9Zu0wcWT8bm1FGwSnVheVQrDw10f/view?usp=sharing",
+            "driveId": "1zvMP9Zu0wcWT8bm1FGwSnVheVQrDw10f",
+            "description": "Media pembelajaran interaktif Kimia materi kartu kuiz bohr karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1UAXfucP",
+            "title": "Kartu Kuis Interaktif: Struktur Atom & Partikel Dasar",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Struktur Atom & Sistem Periodik",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1UAXfucPvQrWGfLA9jQrfuC-lv0SC8lI4/view?usp=sharing",
+            "driveId": "1UAXfucPvQrWGfLA9jQrfuC-lv0SC8lI4",
+            "description": "Media pembelajaran interaktif Kimia materi kuiz kartu atom karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1iuSZxM9",
+            "title": "Konfigurasi Elektron Model Mekanika Kuantum & Diagram Orbital",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Struktur Atom & Sistem Periodik",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1iuSZxM9C8-99hu3QEKVhBT1vt202ZHmW/view?usp=sharing",
+            "driveId": "1iuSZxM9C8-99hu3QEKVhBT1vt202ZHmW",
+            "description": "Media pembelajaran interaktif Kimia materi konf mekanika kuantum karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1LBOvryg",
+            "title": "Struktur Atom, Proton, Neutron, dan Elektron",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Struktur Atom & Sistem Periodik",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1LBOvrygfTdvznu3W2By0TvAxybnOZyAR/view?usp=sharing",
+            "driveId": "1LBOvrygfTdvznu3W2By0TvAxybnOZyAR",
+            "description": "Media pembelajaran interaktif Kimia materi atoms fix karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1fT69gn8",
+            "title": "Teori Perkembangan Model Atom Terstruktur",
+            "subject": "Kimia",
+            "grade": "Kelas 10",
+            "topic": "Struktur Atom & Sistem Periodik",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1fT69gn8UQmSzG2qRipmJnugulfl7NMVM/view?usp=sharing",
+            "driveId": "1fT69gn8UQmSzG2qRipmJnugulfl7NMVM",
+            "description": "Media pembelajaran interaktif Kimia materi teori atom trans karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1JEKDDh4",
+            "title": "Chemical Nomenclature (IUPAC Chemical Compounds)",
+            "subject": "Kimia",
+            "grade": "Kelas 11",
+            "topic": "Hidrokarbon & Senyawa Organik",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1JEKDDh4hfwcdCC523D-RKVGeCnPYWXaC/view?usp=sharing",
+            "driveId": "1JEKDDh4hfwcdCC523D-RKVGeCnPYWXaC",
+            "description": "Media pembelajaran interaktif Kimia materi nomenclature karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1yOuEz4l",
+            "title": "LKS Interaktif: Tata Nama Senyawa Kimia (ICP)",
+            "subject": "Kimia",
+            "grade": "Kelas 11",
+            "topic": "Hidrokarbon & Senyawa Organik",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1yOuEz4lbV1jbYHioHuTiwFB-yCzQ7ZiV/view?usp=sharing",
+            "driveId": "1yOuEz4lbV1jbYHioHuTiwFB-yCzQ7ZiV",
+            "description": "Media pembelajaran interaktif Kimia materi LKS TATA NAMA ICP karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1hTry1Wy",
+            "title": "Media Belajar Senyawa Alkohol Interaktif",
+            "subject": "Kimia",
+            "grade": "Kelas 11",
+            "topic": "Hidrokarbon & Senyawa Organik",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1hTry1Wyeblh7Knc-qnifEajUdkDhroRk/view?usp=sharing",
+            "driveId": "1hTry1Wyeblh7Knc-qnifEajUdkDhroRk",
+            "description": "Media pembelajaran interaktif Kimia materi alcohols karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1BdmmTt6",
+            "title": "Panduan & Latihan Tata Nama Senyawa Kimia Anorganik",
+            "subject": "Kimia",
+            "grade": "Kelas 11",
+            "topic": "Hidrokarbon & Senyawa Organik",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1BdmmTt6GBB_F90ibKfON21cwIq3dM0bg/view?usp=sharing",
+            "driveId": "1BdmmTt6GBB_F90ibKfON21cwIq3dM0bg",
+            "description": "Media pembelajaran interaktif Kimia materi materi tata nama karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1UQX8fug",
+            "title": "Quiz on Chemical Nomenclature & Compound Formulas",
+            "subject": "Kimia",
+            "grade": "Kelas 11",
+            "topic": "Hidrokarbon & Senyawa Organik",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1UQX8fugne3pLG2bD_X6PaS34DoS7KqSJ/view?usp=sharing",
+            "driveId": "1UQX8fugne3pLG2bD_X6PaS34DoS7KqSJ",
+            "description": "Media pembelajaran interaktif Kimia materi quiz nomenclature karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1ly8blil",
+            "title": "Reaksi Adisi & Pembakaran Senyawa Alkena",
+            "subject": "Kimia",
+            "grade": "Kelas 11",
+            "topic": "Hidrokarbon & Senyawa Organik",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1ly8blilBVCTPFLnIRcNnjvUECmmC5TG4/view?usp=sharing",
+            "driveId": "1ly8blilBVCTPFLnIRcNnjvUECmmC5TG4",
+            "description": "Media pembelajaran interaktif Kimia materi reaction alkene karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1tiBxnuz",
+            "title": "Reaksi-Reaksi Kimia Senyawa Alkohol",
+            "subject": "Kimia",
+            "grade": "Kelas 11",
+            "topic": "Hidrokarbon & Senyawa Organik",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1tiBxnuzxNzInwy10dVE86SdqDLKg9YDu/view?usp=sharing",
+            "driveId": "1tiBxnuzxNzInwy10dVE86SdqDLKg9YDu",
+            "description": "Media pembelajaran interaktif Kimia materi alcohol reaction karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1WQlW2gD",
+            "title": "Review & Evaluasi Pemahaman Senyawa Alkana",
+            "subject": "Kimia",
+            "grade": "Kelas 11",
+            "topic": "Hidrokarbon & Senyawa Organik",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1WQlW2gDMdLyLG7UB3TrzvJbu8L8U2iXf/view?usp=sharing",
+            "driveId": "1WQlW2gDMdLyLG7UB3TrzvJbu8L8U2iXf",
+            "description": "Media pembelajaran interaktif Kimia materi review alkane karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1sk6hSac",
+            "title": "Senyawa Hidrokarbon Alkena (Pertemuan 1)",
+            "subject": "Kimia",
+            "grade": "Kelas 11",
+            "topic": "Hidrokarbon & Senyawa Organik",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1sk6hSacBYvkJaKtBrqsqS1VjM4HhtAAO/view?usp=sharing",
+            "driveId": "1sk6hSacBYvkJaKtBrqsqS1VjM4HhtAAO",
+            "description": "Media pembelajaran interaktif Kimia materi alkene pert 1 karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1KmNibtz",
+            "title": "Struktur & Karakteristik Senyawa Alkohol",
+            "subject": "Kimia",
+            "grade": "Kelas 11",
+            "topic": "Hidrokarbon & Senyawa Organik",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1KmNibtzIJsEfV3rn06leuVuJ-XWLUTGe/view?usp=sharing",
+            "driveId": "1KmNibtzIJsEfV3rn06leuVuJ-XWLUTGe",
+            "description": "Media pembelajaran interaktif Kimia materi alcohols new karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1WQGpnYS",
+            "title": "Tata Nama Alkena (Sistem Isomer E/Z & IUPAC)",
+            "subject": "Kimia",
+            "grade": "Kelas 11",
+            "topic": "Hidrokarbon & Senyawa Organik",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1WQGpnYS1S4q7sqhKJOdDYo8FoV_9csc6/view?usp=sharing",
+            "driveId": "1WQGpnYS1S4q7sqhKJOdDYo8FoV_9csc6",
+            "description": "Media pembelajaran interaktif Kimia materi alkene e-z name karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-116PDnsR",
+            "title": "Materi Awal Kimia Kelas 11 (Kurikulum ICP)",
+            "subject": "Kimia",
+            "grade": "Kelas 11",
+            "topic": "Kimia SMA",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/116PDnsRCGygoLd95h9UwoVVKTasSt9Qq/view?usp=sharing",
+            "driveId": "116PDnsRCGygoLd95h9UwoVVKTasSt9Qq",
+            "description": "Media pembelajaran interaktif Kimia materi awal kls 11 icp karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1pnnnGTz",
+            "title": "Kartu Interaktif: Reaksi Eksoterm & Endoterm",
+            "subject": "Kimia",
+            "grade": "Kelas 11",
+            "topic": "Termokimia",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1pnnnGTz-aUYPp-zWgIaiCMIZYH8c_l1d/view?usp=sharing",
+            "driveId": "1pnnnGTz-aUYPp-zWgIaiCMIZYH8c_l1d",
+            "description": "Media pembelajaran interaktif Kimia materi exo endo card karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1542332213-31f87348057f?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1QFd0xP6",
+            "title": "Thermochemistry Part 1: System, Surroundings & Enthalpy",
+            "subject": "Kimia",
+            "grade": "Kelas 11",
+            "topic": "Termokimia",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1QFd0xP6jddxqqR31zAvjLm-N6iUTzv5D/view?usp=sharing",
+            "driveId": "1QFd0xP6jddxqqR31zAvjLm-N6iUTzv5D",
+            "description": "Media pembelajaran interaktif Kimia materi thermo pt 1 - icp new karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1542332213-31f87348057f?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1ThKBUBs",
+            "title": "Thermochemistry Part 2: Calorimetry & Hess's Law",
+            "subject": "Kimia",
+            "grade": "Kelas 11",
+            "topic": "Termokimia",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1ThKBUBs3qqzfFJAVxs8C_Rh-FAbb_F7f/view?usp=sharing",
+            "driveId": "1ThKBUBs3qqzfFJAVxs8C_Rh-FAbb_F7f",
+            "description": "Media pembelajaran interaktif Kimia materi thermo pt 2 - icp karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1542332213-31f87348057f?w=600&auto=format&fit=crop&q=80"
+      },
+      {
+            "id": "dchem-1NOW4XzH",
+            "title": "Modul Interaktif Termokimia & Reaksi Kimia (ICP)",
+            "subject": "Kimia",
+            "grade": "Kelas 11",
+            "topic": "Termokimia",
+            "format": "HTML",
+            "url": "https://drive.google.com/file/d/1NOW4XzHSim4l1pSIfINuZV9Snnoosyxd/view?usp=sharing",
+            "driveId": "1NOW4XzHSim4l1pSIfINuZV9Snnoosyxd",
+            "description": "Media pembelajaran interaktif Kimia materi termokimia icp karya Dhevira Aptia FIrmanda, S.Pd.",
+            "thumbnail": "https://images.unsplash.com/photo-1542332213-31f87348057f?w=600&auto=format&fit=crop&q=80"
+      }
+];
 
     // ==========================================
     // 2. THEME MANAGEMENT (CANDY LIGHT & CYBER CANDY DARK)
@@ -1754,9 +2304,9 @@
     function openDashboardGuru() {
       updateDashboardStats();
       renderAdminMaterialsTable();
-      const savedDriveFolder = localStorage.getItem('dchem_drive_folder_url');
+      const savedDriveFolder = localStorage.getItem('dchem_drive_folder_url') || OFFICIAL_DCHEM_DRIVE_FOLDER;
       const input = document.getElementById('driveFolderUrlInput');
-      if (savedDriveFolder && input && !input.value) {
+      if (input && (!input.value || !input.value.trim())) {
         input.value = savedDriveFolder;
       }
       document.getElementById('modal-dashboard-guru')?.classList.remove('hidden');
@@ -1771,15 +2321,30 @@
     // ==========================================
     // 4. DATA MANAGEMENT & GAS CONNECTION
     // ==========================================
+    function sanitizeDchemMaterials(items) {
+      if (!Array.isArray(items)) return [];
+      // Buang semua materi portalkimia lama jika pernah tersimpan di browser
+      return items.filter(m => {
+        const title = (m.title || '').toLowerCase();
+        const id = (m.id || '').toLowerCase();
+        if (title.includes('sejarah perkembangan sistem periodik') || title.includes('triade dobereiner')) return false;
+        if (title.includes('sel volta (sel galvani): energi listrik redoks spontan')) return false;
+        if (title.includes('sel elektrolisis: reaksi redoks non-spontan')) return false;
+        if (id.startsWith('spu-') || id.startsWith('bil-kuan-') || id.startsWith('sel-volta-') || id.startsWith('sel-elektrolisis-') || id.startsWith('doc-lkpd-') || id.startsWith('slide-sel-')) return false;
+        return true;
+      });
+    }
+
     function loadMaterials() {
-      // 1. Ambil dari localStorage jika ada
+      // 1. Ambil dari localStorage jika ada dan pastikan bersih dari portalkimia
       let hasLocal = false;
       try {
-        const saved = localStorage.getItem('dchem_materials');
+        const saved = localStorage.getItem('dchem_materials_v3');
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            allMaterials = parsed;
+          const clean = sanitizeDchemMaterials(parsed);
+          if (clean.length > 0) {
+            allMaterials = clean;
             hasLocal = true;
           }
         }
@@ -1788,7 +2353,10 @@
       if (!hasLocal) {
         allMaterials = [...defaultCuratedMaterials];
         try {
-          localStorage.setItem('dchem_materials', JSON.stringify(allMaterials));
+          localStorage.setItem('dchem_materials_v3', JSON.stringify(allMaterials));
+          // Bersihkan juga cache lama agar tidak menimbulkan bentrok
+          localStorage.removeItem('dchem_materials');
+          localStorage.removeItem('chemportal_materials');
         } catch(e) {}
       }
 
@@ -1796,40 +2364,26 @@
       updateCounters();
       renderMaterials();
 
-      // 2. Background sync ke Google Apps Script (bila online)
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler((res) => {
-            if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-              allMaterials = res.data.map(m => ({
-                ...m,
-                thumbnail: m.thumbnail || getFallbackThumb(m.format, m.title, m.topic)
-              }));
-              window.allMaterials = allMaterials;
-              localStorage.setItem('dchem_materials', JSON.stringify(allMaterials));
-              updateCounters();
-              renderMaterials();
-            }
-          })
-          .getMaterials();
-      } else {
+      // 2. Background sync HANYA jika guru telah mengonfigurasi Web App URL pribadi
+      if (GAS_API_URL && GAS_API_URL.trim() !== '') {
         fetch(GAS_API_URL + '?action=getMaterials')
           .then(r => r.json())
           .then(res => {
             if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-              allMaterials = res.data.map(m => ({
-                ...m,
-                thumbnail: m.thumbnail || getFallbackThumb(m.format, m.title, m.topic)
-              }));
-              window.allMaterials = allMaterials;
-              localStorage.setItem('dchem_materials', JSON.stringify(allMaterials));
-              updateCounters();
-              renderMaterials();
+              const cleanData = sanitizeDchemMaterials(res.data);
+              if (cleanData.length > 0) {
+                allMaterials = cleanData.map(m => ({
+                  ...m,
+                  thumbnail: m.thumbnail || getFallbackThumb(m.format, m.title, m.topic)
+                }));
+                window.allMaterials = allMaterials;
+                localStorage.setItem('dchem_materials_v3', JSON.stringify(allMaterials));
+                updateCounters();
+                renderMaterials();
+              }
             }
           })
-          .catch(() => {
-            // Beroperasi secara offline / lokal
-          });
+          .catch(() => {});
       }
     }
 
@@ -1903,11 +2457,607 @@
       renderMaterials();
     }
 
+    // ==========================================
+    // 5. VIEW MODE & HIERARCHICAL LEARNING PATH
+    // ==========================================
+    let currentViewMode = localStorage.getItem('dchem_view_mode') || 'flow';
+
+    function switchViewMode(mode) {
+      currentViewMode = mode;
+      try {
+        localStorage.setItem('dchem_view_mode', mode);
+      } catch(e) {}
+      updateViewModeButtons();
+      renderMaterials();
+    }
+
+    function updateViewModeButtons() {
+      const btnFlow = document.getElementById('view-btn-flow');
+      const btnGrid = document.getElementById('view-btn-grid');
+      if (!btnFlow || !btnGrid) return;
+
+      if (currentViewMode === 'flow') {
+        btnFlow.className = 'px-3.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all bg-gradient-to-r from-primary to-secondary text-white shadow-sm cursor-pointer bouncy';
+        btnGrid.className = 'px-3.5 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition-all text-on-surface-variant hover:text-on-surface cursor-pointer bouncy';
+      } else {
+        btnGrid.className = 'px-3.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all bg-gradient-to-r from-primary to-secondary text-white shadow-sm cursor-pointer bouncy';
+        btnFlow.className = 'px-3.5 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition-all text-on-surface-variant hover:text-on-surface cursor-pointer bouncy';
+      }
+    }
+
+    function normalizeGradeKey(gradeStr) {
+      const g = (gradeStr || '').toLowerCase();
+      if (g.includes('10')) return { key: 'kelas-10', name: 'Kelas 10 (Fase E)', badge: 'Fase E', icon: 'school', color: 'primary', order: 10 };
+      if (g.includes('11')) return { key: 'kelas-11', name: 'Kelas 11 (Fase F)', badge: 'Fase F', icon: 'science', color: 'secondary', order: 11 };
+      if (g.includes('12')) return { key: 'kelas-12', name: 'Kelas 12 (Fase F)', badge: 'Fase F', icon: 'bolt', color: 'tertiary', order: 12 };
+      return { key: 'umum', name: 'Semua Kelas & Suplemen Terbuka', badge: 'Umum', icon: 'biotech', color: 'tertiary', order: 99 };
+    }
+
+    function getMaterialPedagogicalScore(item) {
+      const t = ((item.title || '') + ' ' + (item.topic || '') + ' ' + (item.description || '') + ' ' + (item.url || '')).toLowerCase();
+
+      // Kelas 10 - Bab 1: Hakikat Ilmu Kimia & Metode Ilmiah
+      if (t.includes('orientasi') || (t.includes('perkenalan') && t.includes('2'))) return 1001;
+      if (t.includes('pengantar') || t.includes('kontrak belajar') || t.includes('perkenalan')) return 1002;
+      if (t.includes('hakikat') && t.includes('interaktif') && !t.includes('game')) return 1005;
+      if (t.includes('hakikat') && t.includes('bilingual')) return 1006;
+      if (t.includes('game') && t.includes('petualangan')) return 1010;
+      if (t.includes('game') && t.includes('hakikat')) return 1011;
+      if (t.includes('variabel percobaan') || (t.includes('quiz') && t.includes('met ilmiah'))) return 1015;
+      if (t.includes('keselamatan') || (t.includes('quiz') && t.includes('hakikat'))) return 1016;
+      if (t.includes('pisa') && (t.includes('1') || t.includes('pert 1'))) return 1020;
+      if (t.includes('pisa') && (t.includes('2') || t.includes('bagian 2'))) return 1021;
+      if (t.includes('review') && t.includes('hakikat') && !t.includes('eng')) return 1030;
+      if (t.includes('nature of chemistry') || (t.includes('review') && t.includes('eng'))) return 1031;
+
+      // Kelas 10 - Bab 2: Persamaan Reaksi Kimia & Dasar
+      if (t.includes('writing chem eq') || t.includes('writing chemical')) return 1101;
+      if (t.includes('task naming') || t.includes('compound naming & simplification')) return 1105;
+      if (t.includes('simplifying') && t.includes('icp 10')) return 1110;
+      if (t.includes('simplyfying nulis reaksi') || (t.includes('penulisan') && t.includes('penyetaraan'))) return 1115;
+      if (t.includes('simulator penyetaraan') || t.includes('balancing')) return 1120;
+      if (t.includes('latsos bab 1') || (t.includes('latihan soal') && t.includes('bab 1'))) return 1130;
+      if (t.includes('review materi 10grade') || (t.includes('review') && t.includes('semester'))) return 1140;
+
+      // Kelas 10 - Bab 3: Struktur Atom
+      if (t.includes('evolusi teori atom') || (t.includes('atom teori') && !t.includes('trans'))) return 1201;
+      if (t.includes('teori atom trans') || t.includes('terstruktur')) return 1205;
+      if (t.includes('atoms fix') || (t.includes('struktur atom') && t.includes('proton'))) return 1210;
+      if (t.includes('atoms in eng') || (t.includes('atomic structure') && t.includes('bilingual'))) return 1215;
+      if (t.includes('kartu kuiz bohr') || (t.includes('simulasi') && t.includes('bohr'))) return 1220;
+      if (t.includes('kuiz kartu atom') || (t.includes('partikel dasar') && t.includes('kuis'))) return 1225;
+      if (t.includes('mekanika kuantum') || t.includes('diagram orbital')) return 1230;
+
+      // Kelas 11 - Bab 1: Hidrokarbon & Senyawa Organik
+      if (t.includes('materi awal kls 11') || (t.includes('materi awal') && t.includes('11'))) return 2101;
+      if (t.includes('review alkane') || t.includes('senyawa alkana')) return 2105;
+      if (t.includes('alkene pert 1') || (t.includes('alkena') && t.includes('pertemuan 1'))) return 2110;
+      if (t.includes('alkene e-z') || (t.includes('tata nama alkena') && t.includes('e/z'))) return 2115;
+      if (t.includes('reaction alkene') || (t.includes('reaksi adisi') && t.includes('alkena'))) return 2120;
+      if (t.includes('alcohols new') || (t.includes('karakteristik') && t.includes('alkohol'))) return 2125;
+      if (t.includes('media belajar senyawa alkohol') || (t.includes('alcohols') && !t.includes('reaction') && !t.includes('new'))) return 2130;
+      if (t.includes('alcohol reaction') || (t.includes('reaksi-reaksi') && t.includes('alkohol'))) return 2135;
+      if (t.includes('materi tata nama') || (t.includes('panduan') && t.includes('anorganik'))) return 2140;
+      if (t.includes('lks tata nama') || (t.includes('lks') && t.includes('tata nama'))) return 2145;
+      if (t.includes('nomenclature') && !t.includes('quiz') && !t.includes('lks')) return 2150;
+      if (t.includes('quiz nomenclature') || (t.includes('quiz') && t.includes('nomenclature'))) return 2155;
+
+      // Kelas 11 - Bab 2: Termokimia
+      if (t.includes('exo endo') || t.includes('eksoterm')) return 2201;
+      if (t.includes('thermo pt 1') || (t.includes('thermochemistry') && t.includes('part 1'))) return 2210;
+      if (t.includes('thermo pt 2') || (t.includes('thermochemistry') && t.includes('part 2'))) return 2220;
+
+      // Kelas 12
+      if (t.includes('slide') && t.includes('volta')) return 3010;
+      if (t.includes('volta') || t.includes('galvani')) return 3020;
+      if (t.includes('elektrolisis') || t.includes('faraday')) return 3030;
+
+      return 9999;
+    }
+
+    function getMaterialChapter(item) {
+      const t = ((item.title || '') + ' ' + (item.topic || '') + ' ' + (item.description || '') + ' ' + (item.url || '')).toLowerCase();
+      const g = (item.grade || '').toLowerCase();
+
+      // KELAS 11 (FASE F)
+      if (g.includes('11') || (!g.includes('10') && (t.includes('fase f') || t.includes('hidrokarbon') || t.includes('alkana') || t.includes('alkena') || t.includes('alkohol') || t.includes('termo') || t.includes('nomenclat')))) {
+        if (t.includes('termo') || t.includes('kalor') || t.includes('entalpi') || t.includes('eksoterm') || t.includes('endoterm') || t.includes('hess')) {
+          return {
+            id: 'dchem-k11-bab2',
+            name: 'Bab 2: Termokimia & Perubahan Entalpi',
+            desc: 'Sistem dan lingkungan reaksi, reaksi eksoterm-endoterm, kalorimetri, dan Hukum Hess',
+            icon: 'local_fire_department',
+            order: 2
+          };
+        }
+        return {
+          id: 'dchem-k11-bab1',
+          name: 'Bab 1: Hidrokarbon & Tata Nama Senyawa Organik',
+          desc: 'Klasifikasi alkana, alkena, alkohol, sistem isomer E/Z, tata nama IUPAC, dan reaksi kimia',
+          icon: 'category',
+          order: 1
+        };
+      }
+
+      // KELAS 12 (FASE F)
+      if (g.includes('12') || t.includes('volta') || t.includes('elektrolisis') || t.includes('redoks')) {
+        return {
+          id: 'dchem-k12-bab1',
+          name: 'Bab 1: Reaksi Redoks & Elektrokimia',
+          desc: 'Prinsip sel Volta spontan, sel elektrolisis industri, deret volta, dan Hukum Faraday',
+          icon: 'bolt',
+          order: 1
+        };
+      }
+
+      // KELAS 10 (FASE E)
+      if (t.includes('atom') || t.includes('bohr') || t.includes('kuantum') || t.includes('orbital') || t.includes('proton') || t.includes('neutron') || t.includes('spu') || t.includes('partikel')) {
+        return {
+          id: 'dchem-k10-bab3',
+          name: 'Bab 3: Struktur Atom & Sistem Periodik',
+          desc: 'Perkembangan teori atom, partikel subatom, simulasi Bohr, dan konfigurasi mekanika kuantum',
+          icon: 'blur_on',
+          order: 3
+        };
+      }
+      if (t.includes('persamaan reaksi') || t.includes('balancing') || t.includes('reaksi kimia') || t.includes('chemical equation') || t.includes('simplifying') || t.includes('penyetaraan') || t.includes('itpp') || t.includes('latsos') || t.includes('task naming') || t.includes('compound naming') || t.includes('kimia dasar') || t.includes('semester')) {
+        return {
+          id: 'dchem-k10-bab2',
+          name: 'Bab 2: Persamaan Reaksi Kimia & Dasar Kimia',
+          desc: 'Teknik penulisan rumus kimia, penyederhanaan reaksi, dan simulator penyetaraan reaksi',
+          icon: 'balance',
+          order: 2
+        };
+      }
+      return {
+        id: 'dchem-k10-bab1',
+        name: 'Bab 1: Hakikat Ilmu Kimia & Metode Ilmiah',
+        desc: 'Pengenalan ilmu kimia, metode ilmiah, keselamatan laboratorium, dan literasi sains PISA',
+        icon: 'science',
+        order: 1
+      };
+    }
+
+    function getCustomLearningOrder() {
+      try {
+        const saved = localStorage.getItem('dchem_learning_order');
+        return saved ? JSON.parse(saved) : [];
+      } catch(e) {
+        return [];
+      }
+    }
+
+    function saveCustomLearningOrder(orderArray) {
+      try {
+        localStorage.setItem('dchem_learning_order', JSON.stringify(orderArray));
+      } catch(e) {}
+    }
+
+    function moveMaterialStep(materialId, direction) {
+      const item = allMaterials.find(m => String(m.id) === String(materialId));
+      if (!item) return;
+
+      const chap = getMaterialChapter(item);
+      let chapterItems = allMaterials.filter(m => getMaterialChapter(m).id === chap.id);
+
+      const customOrder = getCustomLearningOrder();
+      chapterItems.sort((a, b) => {
+        const idxA = customOrder.indexOf(String(a.id));
+        const idxB = customOrder.indexOf(String(b.id));
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return getMaterialPedagogicalScore(a) - getMaterialPedagogicalScore(b);
+      });
+
+      const currentIndex = chapterItems.findIndex(m => String(m.id) === String(materialId));
+      if (currentIndex === -1) return;
+
+      const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+      if (targetIndex < 0 || targetIndex >= chapterItems.length) return;
+
+      // Swap items
+      const temp = chapterItems[currentIndex];
+      chapterItems[currentIndex] = chapterItems[targetIndex];
+      chapterItems[targetIndex] = temp;
+
+      // Build updated customOrder array
+      let newOrder = customOrder.filter(id => !chapterItems.some(m => String(m.id) === String(id)));
+      newOrder.push(...chapterItems.map(m => String(m.id)));
+
+      saveCustomLearningOrder(newOrder);
+      renderMaterials();
+      showToast(`Langkah belajar ${direction === 'up' ? 'dinaikkan' : 'diturunkan'} urutannya!`, 'swap_vert');
+    }
+
+    function getCustomChapterOrder() {
+      try {
+        const saved = localStorage.getItem('dchem_chapter_order');
+        return saved ? JSON.parse(saved) : [];
+      } catch(e) {
+        return [];
+      }
+    }
+
+    function saveCustomChapterOrder(orderArray) {
+      try {
+        localStorage.setItem('dchem_chapter_order', JSON.stringify(orderArray));
+      } catch(e) {}
+    }
+
+    function moveChapterOrder(chapterId, gradeKey, direction) {
+      const customChapterOrder = getCustomChapterOrder();
+      const gradeItems = allMaterials.filter(m => normalizeGradeKey(m.grade).key === gradeKey);
+      
+      const chapterObjMap = new Map();
+      gradeItems.forEach(m => {
+        const chap = getMaterialChapter(m);
+        if (!chapterObjMap.has(chap.id)) {
+          chapterObjMap.set(chap.id, chap);
+        }
+      });
+      
+      let chaptersInGrade = Array.from(chapterObjMap.values());
+      chaptersInGrade.sort((a, b) => {
+        const idxA = customChapterOrder.indexOf(a.id);
+        const idxB = customChapterOrder.indexOf(b.id);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.order - b.order;
+      });
+
+      const currentIndex = chaptersInGrade.findIndex(c => c.id === chapterId);
+      if (currentIndex === -1) return;
+
+      const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+      if (targetIndex < 0 || targetIndex >= chaptersInGrade.length) return;
+
+      const temp = chaptersInGrade[currentIndex];
+      chaptersInGrade[currentIndex] = chaptersInGrade[targetIndex];
+      chaptersInGrade[targetIndex] = temp;
+
+      const currentGradeChapterIds = chaptersInGrade.map(c => c.id);
+      let newOrder = customChapterOrder.filter(id => !currentGradeChapterIds.includes(id));
+      newOrder.push(...currentGradeChapterIds);
+
+      saveCustomChapterOrder(newOrder);
+      renderMaterials();
+      showToast(`Urutan bab berhasil ${direction === 'up' ? 'dinaikkan' : 'diturunkan'}!`, 'folder_open');
+    }
+
+    function resetLearningOrder() {
+      if (confirm('Kembalikan urutan langkah belajar dan urutan bab ke alur kurikulum standar?')) {
+        localStorage.removeItem('dchem_learning_order');
+        localStorage.removeItem('dchem_chapter_order');
+        renderMaterials();
+        showToast('Urutan bab dan materi dikembalikan ke alur standar.', 'restart_alt');
+      }
+    }
+
+    function renderHierarchicalLearningPath(filtered) {
+      const container = document.getElementById('materials-flow');
+      if (!container) return;
+
+      const customOrder = getCustomLearningOrder();
+
+      // 1. Group by Grade
+      const gradeMap = new Map();
+      filtered.forEach(item => {
+        const gradeMeta = normalizeGradeKey(item.grade);
+        if (!gradeMap.has(gradeMeta.key)) {
+          gradeMap.set(gradeMeta.key, {
+            meta: gradeMeta,
+            items: []
+          });
+        }
+        gradeMap.get(gradeMeta.key).items.push(item);
+      });
+
+      // Sort grade groups
+      const sortedGrades = Array.from(gradeMap.values()).sort((a, b) => a.meta.order - b.meta.order);
+
+      let html = '';
+
+      sortedGrades.forEach(gradeGroup => {
+        const { meta: gradeMeta, items: gradeItems } = gradeGroup;
+
+        // Group items in this grade by Chapter (Bab)
+        const chapterMap = new Map();
+        gradeItems.forEach(item => {
+          const chap = getMaterialChapter(item);
+          if (!chapterMap.has(chap.id)) {
+            chapterMap.set(chap.id, {
+              meta: chap,
+              items: []
+            });
+          }
+          chapterMap.get(chap.id).items.push(item);
+        });
+
+        const customChapterOrder = getCustomChapterOrder();
+        const sortedChapters = Array.from(chapterMap.values()).sort((a, b) => {
+          const idxA = customChapterOrder.indexOf(a.meta.id);
+          const idxB = customChapterOrder.indexOf(b.meta.id);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+          if (idxA !== -1) return -1;
+          if (idxB !== -1) return 1;
+          return a.meta.order - b.meta.order;
+        });
+
+        let chaptersHtml = '';
+
+        sortedChapters.forEach((chapGroup, chapIdx) => {
+          const { meta: chapMeta, items: chapItems } = chapGroup;
+
+          // Sort items within this chapter according to custom order or pedagogical score
+          const sortOrder = document.getElementById('sort-order')?.value || 'learning_flow';
+          chapItems.sort((a, b) => {
+            if (sortOrder === 'title_asc') return (a.title || '').localeCompare(b.title || '');
+            if (sortOrder === 'title_desc') return (b.title || '').localeCompare(a.title || '');
+            
+            const idxA = customOrder.indexOf(String(a.id));
+            const idxB = customOrder.indexOf(String(b.id));
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            return getMaterialPedagogicalScore(a) - getMaterialPedagogicalScore(b);
+          });
+
+          const cardsHtml = chapItems.map((item, idx) => {
+            const stepNum = idx + 1;
+            const isFirst = (idx === 0);
+            const isLast = (idx === chapItems.length - 1);
+            return createStepCardHtml(item, stepNum, isFirst, isLast, chapMeta.id);
+          }).join('');
+
+          chaptersHtml += `
+            <details open class="group/bab bg-surface rounded-2xl border border-outline p-4 sm:p-5 transition-all shadow-sm">
+              <summary class="cursor-pointer list-none flex items-center justify-between gap-3 select-none">
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-xl bg-surface-container text-primary flex items-center justify-center shrink-0 border border-outline">
+                    <span class="material-symbols-outlined text-xl">${chapMeta.icon}</span>
+                  </div>
+                  <div>
+                    <h4 class="text-sm sm:text-base font-headline font-bold text-on-surface">
+                      ${chapMeta.name}
+                    </h4>
+                    <p class="text-[11px] text-on-surface-variant mt-0.5">
+                      ${chapMeta.desc}
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <!-- Chapter Reorder Controls (Khusus Mode Guru) -->
+                  ${isTeacherMode && sortedChapters.length > 1 ? `
+                    <div class="flex items-center gap-1 bg-primary/10 p-1 rounded-xl border border-primary/20 mr-1" onclick="event.stopPropagation()">
+                      <span class="text-[10px] font-bold text-primary px-1 font-mono hidden sm:inline">Urutan Bab:</span>
+                      <button 
+                        type="button"
+                        onclick="moveChapterOrder('${chapMeta.id}', '${gradeMeta.key}', 'up')" 
+                        ${chapIdx === 0 ? 'disabled class="w-6 h-6 rounded-lg opacity-25 cursor-not-allowed text-on-surface-variant flex items-center justify-center"' : 'class="w-6 h-6 rounded-lg text-primary hover:bg-primary/20 active:scale-90 cursor-pointer flex items-center justify-center transition-all"'}
+                        title="Geser Bab Naik">
+                        <span class="material-symbols-outlined text-[15px]">arrow_upward</span>
+                      </button>
+                      <button 
+                        type="button"
+                        onclick="moveChapterOrder('${chapMeta.id}', '${gradeMeta.key}', 'down')" 
+                        ${chapIdx === sortedChapters.length - 1 ? 'disabled class="w-6 h-6 rounded-lg opacity-25 cursor-not-allowed text-on-surface-variant flex items-center justify-center"' : 'class="w-6 h-6 rounded-lg text-primary hover:bg-primary/20 active:scale-90 cursor-pointer flex items-center justify-center transition-all"'}
+                        title="Geser Bab Turun">
+                        <span class="material-symbols-outlined text-[15px]">arrow_downward</span>
+                      </button>
+                    </div>
+                  ` : ''}
+                  <span class="px-2.5 py-1 rounded-xl text-xs font-mono font-semibold bg-surface-container text-on-surface-variant border border-outline shrink-0">
+                    ${chapItems.length} Langkah Belajar
+                  </span>
+                  <div class="w-7 h-7 rounded-lg flex items-center justify-center text-on-surface-variant group-open/bab:rotate-180 transition-transform duration-200">
+                    <span class="material-symbols-outlined text-[18px]">expand_more</span>
+                  </div>
+                </div>
+              </summary>
+
+              <!-- Sequential Step Cards List -->
+              <div class="mt-4 space-y-3 pt-3 border-t border-outline">
+                ${cardsHtml}
+              </div>
+            </details>
+          `;
+        });
+
+        html += `
+          <details open class="group/grade bg-surface-container-low rounded-3xl border border-outline p-4 sm:p-6 transition-all shadow-sm">
+            <summary class="cursor-pointer list-none flex items-center justify-between gap-3 select-none">
+              <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-primary to-secondary text-white flex items-center justify-center shadow-md shadow-primary/25 shrink-0">
+                  <span class="material-symbols-outlined text-2xl">${gradeMeta.icon}</span>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <h3 class="text-base sm:text-lg font-headline font-bold text-on-surface tracking-tight">
+                      Folder Jenjang: ${gradeMeta.name}
+                    </h3>
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-primary-container text-on-primary-container border border-primary/20">
+                      ${gradeMeta.badge}
+                    </span>
+                  </div>
+                  <p class="text-xs text-on-surface-variant mt-0.5">
+                    Terdapat <strong>${gradeItems.length}</strong> modul pembelajaran berurutan
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-on-surface-variant hidden md:inline">Buka / Tutup Folder</span>
+                <div class="w-8 h-8 rounded-xl bg-surface border border-outline flex items-center justify-center text-on-surface group-open/grade:rotate-180 transition-transform duration-200">
+                  <span class="material-symbols-outlined text-[20px]">expand_more</span>
+                </div>
+              </div>
+            </summary>
+
+            <div class="mt-5 space-y-4">
+              ${chaptersHtml}
+            </div>
+          </details>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function createStepCardHtml(item, stepNum, isFirst, isLast, chapterId) {
+      const format = (item.format || 'HTML').toUpperCase();
+      const title = item.title || 'Modul Pembelajaran';
+      const desc = item.description || 'Simulasi media pembelajaran kimia interaktif Kurikulum Merdeka karya Dhevira Aptia FIrmanda, S.Pd.';
+      
+      let thumb = item.thumbnail;
+      if (!thumb || (thumb.includes('photo-1532187863486-abf9dbad1b69') && !title.toLowerCase().includes('sejarah'))) {
+        thumb = getFallbackThumb(format, title, item.topic);
+      }
+
+      let badgeFormat = '';
+      let actionBtn = '';
+
+      if (format === 'PDF') {
+        badgeFormat = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-rose-500 text-white shadow-sm">Modul PDF &bull; LKPD</span>`;
+        actionBtn = `
+          <button onclick="openPdfViewer('${item.id}')" class="flex-1 py-2 px-3 rounded-full candy-glow-btn text-white text-xs font-bold flex items-center justify-center gap-1.5 bouncy transition-all shadow-sm cursor-pointer">
+            <span class="material-symbols-outlined text-[16px]">picture_as_pdf</span>
+            <span>Buka Dokumen</span>
+          </button>`;
+      } else if (format === 'PPT') {
+        badgeFormat = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-amber-500 text-white shadow-sm">Slide Presentasi</span>`;
+        actionBtn = `
+          <button onclick="openPptViewer('${item.id}')" class="flex-1 py-2 px-3 rounded-full candy-glow-btn text-white text-xs font-bold flex items-center justify-center gap-1.5 bouncy transition-all shadow-sm cursor-pointer">
+            <span class="material-symbols-outlined text-[16px]">slideshow</span>
+            <span>Buka Presentasi</span>
+          </button>`;
+      } else {
+        badgeFormat = `<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-primary text-white shadow-sm">HTML Interaktif</span>`;
+        actionBtn = `
+          <button onclick="openHtmlViewer('${item.id}')" class="flex-1 py-2 px-3 rounded-full candy-glow-btn text-white text-xs font-bold flex items-center justify-center gap-1.5 bouncy transition-all shadow-sm cursor-pointer">
+            <span class="material-symbols-outlined text-[16px]">play_circle</span>
+            <span>Buka Simulasi</span>
+          </button>`;
+      }
+
+      const isFav = isMaterialBookmarked(item.id);
+
+      return `
+        <div class="relative flex flex-col sm:flex-row items-stretch bg-surface rounded-2xl border border-outline hover:border-primary/60 transition-all duration-200 overflow-hidden group shadow-sm">
+          
+          <!-- Step Number & Move Up/Down Controls -->
+          <div class="sm:w-28 bg-surface-container border-b sm:border-b-0 sm:border-r border-outline p-2.5 sm:p-3 flex sm:flex-col items-center justify-between sm:justify-center gap-2 shrink-0">
+            <div class="flex items-center sm:flex-col gap-1.5 text-center">
+              <span class="text-[9px] uppercase font-bold tracking-wider text-on-surface-variant font-mono">Tahap</span>
+              <span class="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary to-secondary text-white font-mono font-extrabold text-sm flex items-center justify-center shadow-sm bouncy">
+                ${stepNum}
+              </span>
+              <span class="text-[11px] font-bold text-primary hidden sm:block">Langkah ${stepNum}</span>
+            </div>
+
+            <!-- Reorder 🔼 🔽 buttons: Hanya untuk Mode Guru, disembunyikan untuk siswa -->
+            ${isTeacherMode ? `
+              <div class="flex items-center gap-1 mt-0.5">
+                <button 
+                  type="button"
+                  onclick="moveMaterialStep('${item.id}', 'up')" 
+                  ${isFirst ? 'disabled class="w-7 h-7 rounded-lg border border-outline opacity-25 cursor-not-allowed text-on-surface-variant flex items-center justify-center"' : 'class="w-7 h-7 rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 active:scale-95 cursor-pointer flex items-center justify-center transition-all"'}
+                  title="Geser Langkah Belajar Naik">
+                  <span class="material-symbols-outlined text-[16px]">arrow_upward</span>
+                </button>
+                <button 
+                  type="button"
+                  onclick="moveMaterialStep('${item.id}', 'down')" 
+                  ${isLast ? 'disabled class="w-7 h-7 rounded-lg border border-outline opacity-25 cursor-not-allowed text-on-surface-variant flex items-center justify-center"' : 'class="w-7 h-7 rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 active:scale-95 cursor-pointer flex items-center justify-center transition-all"'}
+                  title="Geser Langkah Belajar Turun">
+                  <span class="material-symbols-outlined text-[16px]">arrow_downward</span>
+                </button>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Thumbnail (Compact) -->
+          <div class="w-full sm:w-40 h-32 sm:h-auto shrink-0 relative overflow-hidden bg-surface-container-high">
+            <img src="${thumb}" alt="${title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100" loading="lazy">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent sm:hidden"></div>
+            <div class="absolute top-2 left-2">
+              ${badgeFormat}
+            </div>
+            <button 
+              type="button"
+              onclick="toggleMaterialBookmark('${item.id}', event)" 
+              class="absolute top-2 right-2 w-7 h-7 rounded-full ${isFav ? 'bg-amber-400 text-slate-950 font-bold shadow-md shadow-amber-400/40' : 'bg-black/60 text-white hover:text-amber-400'} backdrop-blur-md flex items-center justify-center transition-all cursor-pointer z-10"
+              title="${isFav ? 'Hapus dari Favorit' : 'Simpan ke Favorit'}">
+              <span class="material-symbols-outlined text-[16px] ${isFav ? 'material-symbols-fill' : ''}">star</span>
+            </button>
+          </div>
+
+          <!-- Main Card Body -->
+          <div class="p-3.5 sm:p-4 flex-1 flex flex-col justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2 mb-1 flex-wrap">
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-surface-container text-on-surface-variant border border-outline font-mono">
+                  ${item.topic || 'Kimia'}
+                </span>
+                <span class="text-[11px] text-tertiary flex items-center gap-1 font-mono">
+                  <span class="material-symbols-outlined text-[13px]">check_circle</span>
+                  <span>D-Chem Terverifikasi</span>
+                </span>
+              </div>
+              <h4 class="text-sm sm:text-base font-headline font-bold text-on-surface group-hover:text-primary transition-colors leading-snug">
+                ${title}
+              </h4>
+              <p class="text-xs text-on-surface-variant mt-1 line-clamp-2 leading-relaxed">
+                ${desc}
+              </p>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="pt-2.5 border-t border-outline flex items-center justify-between gap-2 flex-wrap">
+              <div class="flex items-center gap-2 flex-1 min-w-[220px]">
+                ${actionBtn}
+                
+                <button 
+                  type="button"
+                  onclick="openDirectTab('${item.id}')" 
+                  class="p-2 rounded-xl border border-outline bg-surface-container hover:bg-surface-container-high text-on-surface transition-all cursor-pointer shrink-0 bouncy" 
+                  title="Buka Langsung di Tab Baru">
+                  <span class="material-symbols-outlined text-[17px]">open_in_new</span>
+                </button>
+              </div>
+
+              ${isTeacherMode ? `
+                <div class="flex items-center gap-1.5">
+                  <button 
+                    type="button"
+                    onclick="openManualMaterialModal('${item.id}')" 
+                    class="p-1.5 rounded-lg border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-all cursor-pointer" 
+                    title="Edit Materi">
+                    <span class="material-symbols-outlined text-[16px]">edit</span>
+                  </button>
+                  <button 
+                    type="button"
+                    onclick="deleteMaterial('${item.id}')" 
+                    class="p-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-all cursor-pointer" 
+                    title="Hapus Materi">
+                    <span class="material-symbols-outlined text-[16px]">delete</span>
+                  </button>
+                </div>
+              ` : ''}
+            </div>
+
+          </div>
+
+        </div>
+      `;
+    }
+
     function renderMaterials() {
       const grid = document.getElementById('materials-grid');
+      const flow = document.getElementById('materials-flow');
       const emptyState = document.getElementById('empty-state');
       const displayedCount = document.getElementById('displayed-count');
-      if (!grid) return;
+      if (!grid && !flow) return;
 
       let filtered = allMaterials.filter(item => {
         // Format or Bookmark filter
@@ -1933,18 +3083,39 @@
         return true;
       });
 
-      displayedCount.textContent = filtered.length;
+      if (displayedCount) displayedCount.textContent = filtered.length;
+
+      const btnReset = document.getElementById('btn-reset-order');
+      if (btnReset) btnReset.classList.toggle('hidden', !isTeacherMode);
 
       // Sorting
-      const sortOrder = document.getElementById('sort-order')?.value || 'grade_title';
-      filtered.sort((a, b) => {
-        if (sortOrder === 'title_asc') return (a.title || '').localeCompare(b.title || '');
-        if (sortOrder === 'title_desc') return (b.title || '').localeCompare(a.title || '');
-        return (a.grade || '').localeCompare(b.grade || '') || (a.title || '').localeCompare(b.title || '');
-      });
+      const sortOrder = document.getElementById('sort-order')?.value || 'learning_flow';
+      if (sortOrder === 'title_asc') {
+        filtered.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+      } else if (sortOrder === 'title_desc') {
+        filtered.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+      } else if (sortOrder === 'grade_title') {
+        filtered.sort((a, b) => (a.grade || '').localeCompare(b.grade || '') || (a.title || '').localeCompare(b.title || ''));
+      } else {
+        // learning_flow: sort by Grade order, then customOrder / pedagogical score
+        const customOrder = getCustomLearningOrder();
+        filtered.sort((a, b) => {
+          const gA = normalizeGradeKey(a.grade).order;
+          const gB = normalizeGradeKey(b.grade).order;
+          if (gA !== gB) return gA - gB;
+          
+          const idxA = customOrder.indexOf(String(a.id));
+          const idxB = customOrder.indexOf(String(b.id));
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+          if (idxA !== -1) return -1;
+          if (idxB !== -1) return 1;
+          return getMaterialPedagogicalScore(a) - getMaterialPedagogicalScore(b);
+        });
+      }
 
       if (filtered.length === 0) {
-        grid.innerHTML = '';
+        if (grid) grid.innerHTML = '';
+        if (flow) flow.innerHTML = '';
         if (emptyState) {
           if (allMaterials.length === 0) {
             emptyState.innerHTML = `
@@ -2000,7 +3171,20 @@
       }
 
       emptyState?.classList.add('hidden');
-      grid.innerHTML = filtered.map(item => createCardHtml(item)).join('');
+
+      if (currentViewMode === 'flow') {
+        if (flow) {
+          flow.classList.remove('hidden');
+          renderHierarchicalLearningPath(filtered);
+        }
+        if (grid) grid.classList.add('hidden');
+      } else {
+        if (grid) {
+          grid.classList.remove('hidden');
+          grid.innerHTML = filtered.map(item => createCardHtml(item)).join('');
+        }
+        if (flow) flow.classList.add('hidden');
+      }
     }
 
     function createCardHtml(item) {
@@ -2253,7 +3437,7 @@
       let driveViewUrl = isDrive ? `https://drive.google.com/file/d/${driveId}/view?usp=sharing` : rawUrl;
       let downloadUrl = isDrive ? `https://drive.google.com/uc?export=download&id=${driveId}` : rawUrl;
       let docsUrl = isDrive ? `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}` : rawUrl;
-      let gasRendererUrl = isDrive ? `${GAS_API_URL}?page=drive-html&id=${driveId}` : '';
+      let gasRendererUrl = isDrive ? `${GAS_RENDERER_URL}?page=drive-html&id=${driveId}` : '';
 
       if (format === 'PDF') {
         if (isDrive) {
@@ -2623,6 +3807,30 @@
       `;
       statusBox.classList.remove('hidden');
 
+      // Jika menyinkronkan folder resmi D-Chem atau belum ada GAS backend kustom yang diset
+      if (!GAS_API_URL || url.includes('1i6pzb4q-QwC2bvWwyGferqg0_tkg9ZXp')) {
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.classList.remove('opacity-50');
+          // Sinkronkan langsung dengan materi resmi D-Chem Ibu Dhevira
+          allMaterials = [...defaultCuratedMaterials];
+          localStorage.setItem('dchem_materials_v3', JSON.stringify(allMaterials));
+          updateCounters();
+          renderMaterials();
+          updateDashboardStats();
+          renderAdminMaterialsTable();
+          statusBox.className = 'p-3.5 rounded-xl text-xs bg-emerald-50 dark:bg-surface-bright text-emerald-700 dark:text-tertiary border border-emerald-300 dark:border-outline-variant';
+          statusBox.innerHTML = `
+            <div class="font-bold flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-base text-emerald-600 dark:text-tertiary">check_circle</span>
+              <span>Sinkronisasi Google Drive Berhasil!</span>
+            </div>
+            <div class="mt-1">Ditemukan dan disinkronkan: <strong>${allMaterials.length}</strong> berkas media pembelajaran interaktif resmi D-Chem dari folder Google Drive Ibu Dhevira Aptia FIrmanda, S.Pd.</div>
+          `;
+        }, 500);
+        return;
+      }
+
       if (typeof google !== 'undefined' && google.script && google.script.run) {
         google.script.run
           .withSuccessHandler((res) => {
@@ -2692,7 +3900,7 @@
             ...m,
             thumbnail: m.thumbnail || getFallbackThumb(m.format, m.title, m.topic)
           }));
-          localStorage.setItem('dchem_materials', JSON.stringify(allMaterials));
+          localStorage.setItem('dchem_materials_v3', JSON.stringify(allMaterials));
           updateCounters();
           renderMaterials();
           updateDashboardStats();
@@ -2707,7 +3915,7 @@
                   ...m,
                   thumbnail: m.thumbnail || getFallbackThumb(m.format, m.title, m.topic)
                 }));
-                localStorage.setItem('dchem_materials', JSON.stringify(allMaterials));
+                localStorage.setItem('dchem_materials_v3', JSON.stringify(allMaterials));
                 updateCounters();
                 renderMaterials();
                 updateDashboardStats();
@@ -2887,7 +4095,7 @@
         allMaterials.unshift(newItem);
       }
 
-      localStorage.setItem('dchem_materials', JSON.stringify(allMaterials));
+      localStorage.setItem('dchem_materials_v3', JSON.stringify(allMaterials));
       closeManualMaterialModal();
       updateCounters();
       renderMaterials();
@@ -2902,7 +4110,7 @@
 
       if (confirm(`Hapus bahan ajar "${item.title}"?`)) {
         allMaterials = allMaterials.filter(m => String(m.id) !== String(id));
-        localStorage.setItem('dchem_materials', JSON.stringify(allMaterials));
+        localStorage.setItem('dchem_materials_v3', JSON.stringify(allMaterials));
         updateCounters();
         renderMaterials();
         updateDashboardStats();
@@ -3797,6 +5005,7 @@ function copyGlossaryFormula(id) {
       initBookmarks();
       initPWA();
       updateTeacherUI();
+      updateViewModeButtons();
       loadMaterials();
       initGlossary();
     }

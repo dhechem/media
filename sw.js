@@ -1,4 +1,4 @@
-const CACHE_NAME = 'd-chem-v2';
+const CACHE_NAME = 'd-chem-v4';
 const STATIC_ASSETS = [
   './',
   './index.html',
