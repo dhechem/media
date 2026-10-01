@@ -355,6 +355,10 @@
         <button onclick="setFormatFilter('PDF')" id="nav-btn-pdf" class="px-4 py-1.5 text-on-surface-variant hover:text-on-surface hover:bg-surface/60 transition-all rounded-full bouncy">
           Materi &amp; LKPD
         </button>
+        <a href="Guru.html" id="nav-btn-guru-portal" class="hidden px-4 py-1.5 text-secondary hover:text-secondary hover:bg-secondary/10 transition-all rounded-full bouncy font-bold items-center gap-1.5" title="Buka Ruang Guru (Manajemen Tugas & Evaluasi AI)">
+          <span class="material-symbols-outlined text-[16px]">school</span>
+          <span>Ruang Guru</span>
+        </a>
       </nav>
 
       <!-- Right Controls: Utilitas Kimia, PWA, Theme Toggle, Teacher Area, Profile -->
@@ -505,6 +509,29 @@
             </div>
           </div>
 
+          <!-- Akses Belajar Terakhir (Last Visited) -->
+          <div id="last-visited-banner" class="hidden mt-4 p-3.5 rounded-2xl bg-surface-container/90 border border-outline flex items-center justify-between gap-3 text-xs shadow-sm backdrop-blur-sm">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-secondary text-white flex items-center justify-center shrink-0 shadow-sm bouncy">
+                <span class="material-symbols-outlined text-[20px]">history</span>
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 text-[11px] text-on-surface-variant font-medium">
+                  <span>Lanjutkan Belajar Terakhir</span>
+                  <span id="last-visited-badge" class="px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-bold text-[10px]">HTML</span>
+                </div>
+                <div id="last-visited-title" class="font-bold text-on-surface truncate text-xs sm:text-sm mt-0.5">...</div>
+              </div>
+            </div>
+            <button 
+              id="last-visited-btn"
+              type="button" 
+              class="px-4 py-2 rounded-full candy-glow-btn text-white text-xs font-bold shrink-0 flex items-center gap-1.5 shadow-sm transition-all cursor-pointer bouncy">
+              <span>Lanjut Belajar</span>
+              <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </button>
+          </div>
+
           <!-- Quick Filter Chips Scrollable (Pills) -->
           <div class="mt-5 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none text-xs">
             <span class="text-on-surface-variant text-[11px] font-bold mr-1 uppercase shrink-0">Filter Cepat:</span>
@@ -532,15 +559,15 @@
             
             <div class="w-[1px] h-5 bg-outline mx-1 shrink-0"></div>
             
-            <button class="filter-chip px-4 py-2 rounded-full bg-surface hover:bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline shrink-0 bouncy" data-grade="Kelas 10" onclick="setGradeFilter('Kelas 10')">
+            <button class="filter-chip px-4 py-2 rounded-full bg-surface hover:bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline shrink-0 bouncy" data-grade="Kelas 10" onclick="selectClassHub('Kelas 10')">
               Fase E &bull; Kelas 10
             </button>
             
-            <button class="filter-chip px-4 py-2 rounded-full bg-surface hover:bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline shrink-0 bouncy" data-grade="Kelas 11" onclick="setGradeFilter('Kelas 11')">
+            <button class="filter-chip px-4 py-2 rounded-full bg-surface hover:bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline shrink-0 bouncy" data-grade="Kelas 11" onclick="selectClassHub('Kelas 11')">
               Fase F &bull; Kelas 11
             </button>
             
-            <button class="filter-chip px-4 py-2 rounded-full bg-surface hover:bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline shrink-0 bouncy" data-grade="Kelas 12" onclick="setGradeFilter('Kelas 12')">
+            <button class="filter-chip px-4 py-2 rounded-full bg-surface hover:bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline shrink-0 bouncy" data-grade="Kelas 12" onclick="selectClassHub('Kelas 12')">
               Fase F &bull; Kelas 12
             </button>
           </div>
@@ -549,7 +576,7 @@
       </div>
 
       <!-- Main Showcase Grid Section -->
-      <section class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-6 flex-grow">
+      <section id="catalog-section" class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-12 py-6 flex-grow">
         
         <!-- Section Header Bar -->
         <div class="flex flex-wrap items-center justify-between gap-4 mb-6 pb-3 border-b border-slate-200/80 dark:border-outline-variant/60">
@@ -599,6 +626,37 @@
             </select>
 
             <!-- Reset Urutan Button (Khusus Mode Guru) -->
+            <!-- Accordion All Controls (Buka / Tutup Semua Folder) -->
+            <div id="flow-accordion-controls" class="inline-flex items-center gap-1 text-xs">
+              <button 
+                type="button" 
+                onclick="toggleAllAccordions(true)" 
+                class="px-3 py-1.5 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface-variant text-[11px] font-medium border border-outline transition-colors cursor-pointer flex items-center gap-1 bouncy" 
+                title="Buka Semua Folder Jenjang &amp; Bab">
+                <span class="material-symbols-outlined text-[15px]">unfold_more</span>
+                <span class="hidden sm:inline">Buka Semua</span>
+              </button>
+              <button 
+                type="button" 
+                onclick="toggleAllAccordions(false)" 
+                class="px-3 py-1.5 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface-variant text-[11px] font-medium border border-outline transition-colors cursor-pointer flex items-center gap-1 bouncy" 
+                title="Tutup Semua Folder Jenjang &amp; Bab">
+                <span class="material-symbols-outlined text-[15px]">unfold_less</span>
+                <span class="hidden sm:inline">Tutup Semua</span>
+              </button>
+            </div>
+
+            <!-- Tombol Simpan Cloud (Khusus Mode Guru) -->
+            <button 
+              id="btn-cloud-catalog" 
+              type="button" 
+              onclick="publishCatalogSettings()" 
+              class="hidden px-3.5 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 text-xs font-semibold flex items-center gap-1.5 transition-all bouncy cursor-pointer"
+              title="Simpan perubahan judul bab dan urutan belajar ke database Cloud">
+              <span class="material-symbols-outlined text-[16px]">cloud_upload</span>
+              <span>Simpan ke Cloud</span>
+            </button>
+
             <button 
               id="btn-reset-order"
               type="button"
@@ -1289,6 +1347,11 @@
 
         <div class="grid grid-cols-2 gap-3">
           <div>
+            <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1" for="manual-item-chapter">Pindahkan ke Bab</label>
+            <select id="manual-item-chapter" class="w-full px-3 py-2 bg-slate-50 dark:bg-surface-container-low border border-slate-200 dark:border-outline-variant rounded-xl text-slate-900 dark:text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"></select>
+            <p class="text-[11px] text-slate-500 dark:text-on-surface-variant mt-1">Pilih bab pada jenjang/fase ini, atau tulis topik baru di bawah.</p>
+          </div>
+          <div>
             <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Topik / Bab</label>
             <input type="text" id="manual-item-topic" placeholder="Misal: Elektrokimia" class="w-full px-3 py-2 bg-slate-50 dark:bg-surface-container-low border border-slate-200 dark:border-outline-variant rounded-xl text-slate-900 dark:text-on-surface focus:outline-none focus:ring-2 focus:ring-violet-500">
           </div>
@@ -1668,6 +1731,50 @@
     <div class="text-[11px] text-on-surface-variant">
       Disusun dengan penuh dedikasi oleh: <strong class="text-primary font-bold">Dhevira Aptia FIrmanda, S.Pd.</strong> &bull; 
       <span class="text-primary font-medium">Guru Pengampu Kimia SMA</span>
+    </div>
+    <div class="flex items-center justify-center gap-3 text-xs pt-1">
+      <button 
+        type="button" 
+        onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" 
+        class="inline-flex items-center gap-1 text-[11px] text-on-surface-variant hover:text-primary transition-colors cursor-pointer" 
+        title="Kembali ke Bagian Paling Atas">
+        <span>Kembali ke atas</span>
+        <span class="material-symbols-outlined text-[15px]">arrow_upward</span>
+      </button>
+      <span class="text-outline">&bull;</span>
+      <button 
+        id="footer-btn-guru" 
+        onclick="handleAreaGuruClick()" 
+        type="button"
+        class="inline-flex items-center gap-1.5 text-[11px] text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
+        title="Masuk ke Panel Pengelolaan Materi Guru">
+        <span class="material-symbols-outlined text-[13px]">lock</span>
+        <span>Akses Guru</span>
+      </button>
+
+      <!-- Panel Status Guru Aktif (Hanya saat isTeacherMode aktif) -->
+      <div id="footer-teacher-actions" class="hidden items-center gap-2 text-xs">
+        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white font-mono shadow-sm">GURU AKTIF</span>
+        <button 
+          type="button" 
+          onclick="openDashboardGuru()" 
+          class="px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/25 font-semibold text-[11px] hover:bg-primary/20 flex items-center gap-1 cursor-pointer bouncy">
+          <span class="material-symbols-outlined text-[14px]">tune</span>
+          <span>Dashboard Guru</span>
+        </button>
+        <a 
+          href="Guru.html" 
+          class="px-3 py-1 rounded-full bg-secondary/10 text-secondary border border-secondary/25 font-semibold text-[11px] hover:bg-secondary/20 flex items-center gap-1 bouncy">
+          <span class="material-symbols-outlined text-[14px]">school</span>
+          <span>Ruang Guru</span>
+        </a>
+        <button 
+          type="button" 
+          onclick="logoutTeacher()" 
+          class="text-rose-500 hover:text-rose-700 text-[11px] font-semibold underline cursor-pointer ml-1">
+          Keluar
+        </button>
+      </div>
     </div>
     <div class="text-[10px] text-on-surface-variant/80 pt-1">
       &copy; 2026 D-Chem. Mengadopsi Desain Google Stitch Candy (Terang) &amp; Cyber Candy (Gelap).
@@ -2562,60 +2669,54 @@
       // KELAS 11 (FASE F)
       if (g.includes('11') || (!g.includes('10') && (t.includes('fase f') || t.includes('hidrokarbon') || t.includes('alkana') || t.includes('alkena') || t.includes('alkohol') || t.includes('termo') || t.includes('nomenclat')))) {
         if (t.includes('termo') || t.includes('kalor') || t.includes('entalpi') || t.includes('eksoterm') || t.includes('endoterm') || t.includes('hess')) {
-          return {
-            id: 'dchem-k11-bab2',
-            name: 'Bab 2: Termokimia & Perubahan Entalpi',
-            desc: 'Sistem dan lingkungan reaksi, reaksi eksoterm-endoterm, kalorimetri, dan Hukum Hess',
-            icon: 'local_fire_department',
-            order: 2
-          };
+          const chap_dchem_k11_bab2 = { id: 'dchem-k11-bab2', name: 'Bab 2: Termokimia & Perubahan Entalpi', desc: 'Sistem dan lingkungan reaksi, reaksi eksoterm-endoterm, kalorimetri, dan Hukum Hess', icon: 'local_fire_department', order: 2 };
+      const ov_dchem_k11_bab2 = readCatalogOverrides('dchem_chapter_titles');
+      if (ov_dchem_k11_bab2[chap_dchem_k11_bab2.id]) {
+        return { ...chap_dchem_k11_bab2, name: ov_dchem_k11_bab2[chap_dchem_k11_bab2.id] };
+      }
+      return chap_dchem_k11_bab2;
         }
-        return {
-          id: 'dchem-k11-bab1',
-          name: 'Bab 1: Hidrokarbon & Tata Nama Senyawa Organik',
-          desc: 'Klasifikasi alkana, alkena, alkohol, sistem isomer E/Z, tata nama IUPAC, dan reaksi kimia',
-          icon: 'category',
-          order: 1
-        };
+        const chap_dchem_k11_bab1 = { id: 'dchem-k11-bab1', name: 'Bab 1: Hidrokarbon & Tata Nama Senyawa Organik', desc: 'Klasifikasi alkana, alkena, alkohol, sistem isomer E/Z, tata nama IUPAC, dan reaksi kimia', icon: 'category', order: 1 };
+      const ov_dchem_k11_bab1 = readCatalogOverrides('dchem_chapter_titles');
+      if (ov_dchem_k11_bab1[chap_dchem_k11_bab1.id]) {
+        return { ...chap_dchem_k11_bab1, name: ov_dchem_k11_bab1[chap_dchem_k11_bab1.id] };
+      }
+      return chap_dchem_k11_bab1;
       }
 
       // KELAS 12 (FASE F)
       if (g.includes('12') || t.includes('volta') || t.includes('elektrolisis') || t.includes('redoks')) {
-        return {
-          id: 'dchem-k12-bab1',
-          name: 'Bab 1: Reaksi Redoks & Elektrokimia',
-          desc: 'Prinsip sel Volta spontan, sel elektrolisis industri, deret volta, dan Hukum Faraday',
-          icon: 'bolt',
-          order: 1
-        };
+        const chap_dchem_k12_bab1 = { id: 'dchem-k12-bab1', name: 'Bab 1: Reaksi Redoks & Elektrokimia', desc: 'Prinsip sel Volta spontan, sel elektrolisis industri, deret volta, dan Hukum Faraday', icon: 'bolt', order: 1 };
+      const ov_dchem_k12_bab1 = readCatalogOverrides('dchem_chapter_titles');
+      if (ov_dchem_k12_bab1[chap_dchem_k12_bab1.id]) {
+        return { ...chap_dchem_k12_bab1, name: ov_dchem_k12_bab1[chap_dchem_k12_bab1.id] };
+      }
+      return chap_dchem_k12_bab1;
       }
 
       // KELAS 10 (FASE E)
       if (t.includes('atom') || t.includes('bohr') || t.includes('kuantum') || t.includes('orbital') || t.includes('proton') || t.includes('neutron') || t.includes('spu') || t.includes('partikel')) {
-        return {
-          id: 'dchem-k10-bab3',
-          name: 'Bab 3: Struktur Atom & Sistem Periodik',
-          desc: 'Perkembangan teori atom, partikel subatom, simulasi Bohr, dan konfigurasi mekanika kuantum',
-          icon: 'blur_on',
-          order: 3
-        };
+        const chap_dchem_k10_bab3 = { id: 'dchem-k10-bab3', name: 'Bab 3: Struktur Atom & Sistem Periodik', desc: 'Perkembangan teori atom, partikel subatom, simulasi Bohr, dan konfigurasi mekanika kuantum', icon: 'blur_on', order: 3 };
+      const ov_dchem_k10_bab3 = readCatalogOverrides('dchem_chapter_titles');
+      if (ov_dchem_k10_bab3[chap_dchem_k10_bab3.id]) {
+        return { ...chap_dchem_k10_bab3, name: ov_dchem_k10_bab3[chap_dchem_k10_bab3.id] };
+      }
+      return chap_dchem_k10_bab3;
       }
       if (t.includes('persamaan reaksi') || t.includes('balancing') || t.includes('reaksi kimia') || t.includes('chemical equation') || t.includes('simplifying') || t.includes('penyetaraan') || t.includes('itpp') || t.includes('latsos') || t.includes('task naming') || t.includes('compound naming') || t.includes('kimia dasar') || t.includes('semester')) {
-        return {
-          id: 'dchem-k10-bab2',
-          name: 'Bab 2: Persamaan Reaksi Kimia & Dasar Kimia',
-          desc: 'Teknik penulisan rumus kimia, penyederhanaan reaksi, dan simulator penyetaraan reaksi',
-          icon: 'balance',
-          order: 2
-        };
+        const chap_dchem_k10_bab2 = { id: 'dchem-k10-bab2', name: 'Bab 2: Persamaan Reaksi Kimia & Dasar Kimia', desc: 'Teknik penulisan rumus kimia, penyederhanaan reaksi, dan simulator penyetaraan reaksi', icon: 'balance', order: 2 };
+      const ov_dchem_k10_bab2 = readCatalogOverrides('dchem_chapter_titles');
+      if (ov_dchem_k10_bab2[chap_dchem_k10_bab2.id]) {
+        return { ...chap_dchem_k10_bab2, name: ov_dchem_k10_bab2[chap_dchem_k10_bab2.id] };
       }
-      return {
-        id: 'dchem-k10-bab1',
-        name: 'Bab 1: Hakikat Ilmu Kimia & Metode Ilmiah',
-        desc: 'Pengenalan ilmu kimia, metode ilmiah, keselamatan laboratorium, dan literasi sains PISA',
-        icon: 'science',
-        order: 1
-      };
+      return chap_dchem_k10_bab2;
+      }
+      const chap_dchem_k10_bab1 = { id: 'dchem-k10-bab1', name: 'Bab 1: Hakikat Ilmu Kimia & Metode Ilmiah', desc: 'Pengenalan ilmu kimia, metode ilmiah, keselamatan laboratorium, dan literasi sains PISA', icon: 'science', order: 1 };
+      const ov_dchem_k10_bab1 = readCatalogOverrides('dchem_chapter_titles');
+      if (ov_dchem_k10_bab1[chap_dchem_k10_bab1.id]) {
+        return { ...chap_dchem_k10_bab1, name: ov_dchem_k10_bab1[chap_dchem_k10_bab1.id] };
+      }
+      return chap_dchem_k10_bab1;
     }
 
     function getCustomLearningOrder() {
@@ -2687,6 +2788,7 @@
 
     function moveChapterOrder(chapterId, gradeKey, direction) {
       const customChapterOrder = getCustomChapterOrder();
+        const completedList = getCompletedMaterials();
       const gradeItems = allMaterials.filter(m => normalizeGradeKey(m.grade).key === gradeKey);
       
       const chapterObjMap = new Map();
@@ -2943,7 +3045,7 @@
       const isFav = isMaterialBookmarked(item.id);
 
       return `
-        <div class="relative flex flex-col sm:flex-row items-stretch bg-surface rounded-2xl border border-outline hover:border-primary/60 transition-all duration-200 overflow-hidden group shadow-sm">
+        <div class="relative flex flex-col sm:flex-row items-stretch bg-surface rounded-2xl border ${isCompleted ? 'border-emerald-400 dark:border-emerald-600/70 bg-emerald-50/15' : 'border-outline'} hover:border-primary/60 transition-all duration-200 overflow-hidden group shadow-sm">
           
           <!-- Step Number & Move Up/Down Controls -->
           <div class="sm:w-28 bg-surface-container border-b sm:border-b-0 sm:border-r border-outline p-2.5 sm:p-3 flex sm:flex-col items-center justify-between sm:justify-center gap-2 shrink-0">

@@ -1,7 +1,7 @@
 # Panduan Lengkap: D-Chem Portal Bahan Ajar Kimia SMA
 **Pengembang/Pengampu:** Dhevira Aptia FIrmanda, S.Pd.  
 **Kata Sandi Area Guru:** guru08123  
-**Lokasi Berkas Lokal:** C:\Users\Tito\Desktop\D-Chem-Bahan Ajar\
+**Lokasi Berkas Lokal:** C:\Users\Tito\Desktop\BUKAN PROJEKKU\D-Chem-Bahan Ajar\
 
 ---
 
